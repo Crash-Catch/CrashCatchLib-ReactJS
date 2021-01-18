@@ -145,8 +145,7 @@ class CrashCatch
                 
         return new Promise(function(resolve, reject)
         {
-            //let url = "https://engine.crashcatch.com/";
-            let url = "http://engine.crashcatch.home.local/"
+            let url = "https://engine.crashcatch.com/";
             
             url += endpoint;
 
