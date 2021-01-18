@@ -1,12 +1,12 @@
 {
-  "name": "crashcatchlib-js",
+  "name": "crashcatchlib-reactjs",
+  "author": "Chris Board <support@boardiesitsolutions.com> (https://crashcatch.com)",
   "version": "1.0.0",
   "description": "Receive crash and error reports for JS and ReactJS projects",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Boardies IT Solutions",
   "license": "ISC",
   "dependencies": {
     "js-cookie": "^2.2.1",

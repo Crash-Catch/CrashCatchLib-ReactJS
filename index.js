@@ -69,10 +69,6 @@ class CrashCatch
         this.version = version;
         this.callback = callback;
 
-        console.log("API Key: " + this.api_key);
-        console.log("App ID: " + this.project_id);
-        console.log("Version: " + this.version);
-
         const postArray = {
             ProjectID: this.project_id,
             AppVersion: this.version
@@ -80,21 +76,16 @@ class CrashCatch
 
         const deviceIDCookie = this.getCookie("DeviceID");
 
-        console.log("Device ID Cookie: " + deviceIDCookie);
 
         if (deviceIDCookie !== "")
         {
             this.device_id = deviceIDCookie;
         }
 
-        console.log("this.device_id is: " + this.device_id);
 
         if (this.device_id === "")
         {
-            console.log("Generating device id");
             this.device_id = this.generateRandomDeviceID();
-            console.log("Device ID is: " + this.device_id);
-
         }
 
         postArray.DeviceID = this.device_id;
@@ -140,8 +131,7 @@ class CrashCatch
         });
 
         window.onerror = (message, source, lineno, colno, error) => {
-            console.log("Handling unhandled error");
-            //this.reportCrash(error, "High", null);
+            
             this.reportUnhandledException(error);
         }
 
@@ -151,11 +141,12 @@ class CrashCatch
 
     sendRequest(postArray, endpoint)
     {
-        console.log("Sending Request");
         const main = this;
+                
         return new Promise(function(resolve, reject)
         {
-            let url = "https://engine.crashcatch.com/";
+            //let url = "https://engine.crashcatch.com/";
+            let url = "http://engine.crashcatch.home.local/"
             
             url += endpoint;
 
@@ -166,15 +157,29 @@ class CrashCatch
                 formBody.push(encodedKey + "=" + encodedValue);
             }
             formBody = formBody.join("&");
+
+            let headers = null;
+            if ((main.cookie !== null) && main.cookie !== "")
+            {
+                headers = {
+                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                    'authorisation-token': main.api_key,
+                    'session_id': main.getCookie("session_id"),
+                };
+            }
+            else
+            {
+                headers = {
+                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                    'authorisation-token': main.api_key
+                };
+            }
+
             fetch(url, {
                 method: 'post',
                 body: formBody,
                 crossDomain: true,
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-                    'authorisation-token': main.api_key,
-                    'session_id': main.cookie,
-                }
+                headers: headers
             }).then(function (response)
             {
                 if (response.status !== 200)
@@ -183,6 +188,11 @@ class CrashCatch
                 }
                 else
                 {
+                    if (endpoint === "initialise")
+                    {
+                        main.setCookie("session_id", response.headers.get("session_id"));
+                        main.cookie = main.getCookie("session_id");
+                    }
                     response.text().then(function (text)
                     {
                         if (text.length > 0)
@@ -285,10 +295,6 @@ class CrashCatch
     reportCrash(exception, severity, customProperties = null)
     {
 
-            console.log("Here is the exception for project id " + this.project_id);
-            console.log(exception);
-
-
             //Check that we received a valid severity
             switch (severity)
             {
@@ -327,9 +333,6 @@ class CrashCatch
                 postArray.CustomProperty = JSON.stringify(customProperties);
             }
 
-            console.log("Post array is");
-            console.log(postArray);
-
 
         if (this.is_initialised)
         {
@@ -352,21 +355,11 @@ class CrashCatch
 
     getLineNoFromStacktrace(stack)
     {
-        console.log("The stack is");
-        console.log(stack);
         const stackSplit = stack.split(/\r?\n/);
 
-        console.log(stackSplit);
-
-        console.log("Stack line 1: ");
-        console.log(stack);
-
-        /*stack = stack.replace("http://");
-        stack = stack.replace("https://");
         //Get the first colon (:), after this is the line number)*/
         const lineInfo = stack.substring(stack.indexOf(":")+1);
 
-        console.log("Line info: " + lineInfo);
         //Now what we have left, the colon next is the end of the line number
 
         return lineInfo.substring(0, lineInfo.indexOf(":"));
@@ -430,22 +423,3 @@ class CrashCatch
 }
 
 module.exports.CrashCatch = CrashCatch;
-
-/*const initialiseCrashCatch = (api_key, project_id, version, callback = null) => {
-    console.log("API Key: " + api_key);
-    console.log("App ID: " + project_id);
-    console.log("Version: " + version);
-
-    if (callback !== null)
-    {
-        callback(true);
-    }
-}
-
-const reportCrash = (exception, severity) => {
-    console.log("Here is the exception");
-    console.error(exception);
-}
-
-module.exports.initialiseCrashCatch = initialiseCrashCatch;
-module.exports.reportCrash = reportCrash;*/
