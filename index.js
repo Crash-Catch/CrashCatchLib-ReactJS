@@ -15,6 +15,8 @@ class CrashCatch
         this.crash_queue = [];
         this.device_id = '';
         this.cookie = null;
+
+        this.initialiseAttempt = 0;
     }
 
     generateRandomDeviceID()
@@ -65,6 +67,17 @@ class CrashCatch
     initialiseCrashCatch(project_id, api_key, version, callback = null)
     {
 
+        if (this.initialiseAttempt >= 3)
+        {
+            console.error("Initialisation attempt has failed too many times. Will no longer auto-retry");
+            if (this.callback !== null)
+            {
+                this.callback({
+                    result: -1,
+                    message: "Initialisation attempt has failed too many times. Will no longer auto-retry"
+                });
+            }
+        }
         window.onerror = (message, source, lineno, colno, error) => {
 
             this.reportUnhandledException(error);
@@ -124,6 +137,10 @@ class CrashCatch
                         }
                     });
                 });
+            }
+            else
+            {
+                main.initialiseAttempt++;
             }
             if (callback !== null)
             {
@@ -200,6 +217,14 @@ class CrashCatch
                         if (text.length > 0)
                         {
                             const json = JSON.parse(text);
+                            //If result = 4 then take the post data and add it to the crash queue
+
+                            if (json.result === 4)
+                            {
+                                main.crash_queue.push(postArray);
+                                main.initialiseCrashCatch(main.project_id, main.api_key, main.version, main.callback);
+                            }
+
                             resolve(json);
                         }
                         else
