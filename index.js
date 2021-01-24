@@ -64,6 +64,12 @@ class CrashCatch
 
     initialiseCrashCatch(project_id, api_key, version, callback = null)
     {
+
+        window.onerror = (message, source, lineno, colno, error) => {
+
+            this.reportUnhandledException(error);
+        }
+
         this.api_key = api_key;
         this.project_id = project_id;
         this.version = version;
@@ -130,10 +136,7 @@ class CrashCatch
             }
         });
 
-        window.onerror = (message, source, lineno, colno, error) => {
-            
-            this.reportUnhandledException(error);
-        }
+
 
 
     }
@@ -278,17 +281,26 @@ class CrashCatch
         postArray.Severity = "High";
 
         const main = this;
-        this.sendRequest(postArray, "crash").then(function(result){
-            if (main.callback !== null)
+        if (this.is_initialised)
+        {
+            this.sendRequest(postArray, "crash").then(function (result)
             {
-                main.callback(result);
-            }
-        }).catch(function(err){
-            if (main.callback !== null)
+                if (main.callback !== null)
+                {
+                    main.callback(result);
+                }
+            }).catch(function (err)
             {
-                main.callback(err);
-            }
-        })
+                if (main.callback !== null)
+                {
+                    main.callback(err);
+                }
+            })
+        }
+        else
+        {
+            this.crash_queue.push(postArray);
+        }
     }
 
     reportCrash(exception, severity, customProperties = null)
