@@ -272,7 +272,20 @@ class CrashCatch
         postArray.CrashType = handledException ? "Handled" : "Unhandled"
         postArray.DeviceID = this.device_id;
 
-        postArray.Stacktrace = exception.stack
+        console.log("Getting post array. Exception Object");
+        console.log(exception);
+        if (typeof exception.stack ===typeof undefined )
+        {
+            //If it is a handled exception, then there might not be a stack
+            const err = new Error();
+
+            postArray.Stacktrace = err.stack;
+        }
+        else
+        {
+            postArray.Stacktrace = exception.stack
+        }
+
 
         //Now we have a stack get the line number
         postArray.LineNo = this.getLineNoFromStacktrace(postArray.Stacktrace);
@@ -391,6 +404,8 @@ class CrashCatch
 
     getLineNoFromStacktrace(stack)
     {
+        console.log("Parsing the stack trace");
+        console.log(stack);
         const stackSplit = stack.split(/\r?\n/);
 
         //Get the first colon (:), after this is the line number)*/
