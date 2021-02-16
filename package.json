@@ -1,7 +1,7 @@
 {
   "name": "crashcatchlib-reactjs",
   "author": "Chris Board <support@boardiesitsolutions.com> (https://crashcatch.com)",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Receive crash and error reports for JS and ReactJS projects",
   "main": "index.js",
   "scripts": {

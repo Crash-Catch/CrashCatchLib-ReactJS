@@ -256,16 +256,7 @@ class CrashCatch
     {
         const postArray = { };
         postArray.Severity = severity;
-        if (exceptionMsg.indexOf(":") >= 0)
-        {
-            postArray.ExceptionType = exceptionMsg.substring(0, exceptionMsg.indexOf(":"));
-            postArray.ExceptionMessage = exceptionMsg.substring(exceptionMsg.indexOf(":")+1).trim();
-        }
-        else
-        {
-            postArray.ExceptionType = exceptionMsg;
-            postArray.ExceptionMessage = exceptionMsg;
-        }
+       
         postArray.ScreenResolution = "";
         postArray.Locale = navigator.language;
         postArray.ProjectID = this.project_id;
