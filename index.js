@@ -90,7 +90,7 @@ class CrashCatch
 
         const postArray = {
             ProjectID: this.project_id,
-            AppVersion: this.version
+            ProjectVersion: this.version
         }
 
         const deviceIDCookie = this.getCookie("DeviceID");
@@ -165,38 +165,37 @@ class CrashCatch
                 
         return new Promise(function(resolve, reject)
         {
-            let url = "https://engine.crashcatch.com/";
+            //let url = "https://engine.crashcatch.com/";
+            let url = "http://127.0.0.1:5000/api/";
             
             url += endpoint;
 
-            let formBody = [];
+            /*let formBody = [];
             for (const property in postArray) {
                 const encodedKey = encodeURIComponent(property);
                 const encodedValue = encodeURIComponent(postArray[property]);
                 formBody.push(encodedKey + "=" + encodedValue);
             }
-            formBody = formBody.join("&");
+            formBody = formBody.join("&");*/
 
             let headers = null;
             if ((main.cookie !== null) && main.cookie !== "")
             {
                 headers = {
-                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                    'Content-Type': 'application/json',
                     'authorisation-token': main.api_key,
                     'session_id': main.getCookie("session_id"),
                 };
             }
-            else
-            {
+            else {
                 headers = {
-                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                    'Content-Type': 'application/json',
                     'authorisation-token': main.api_key
                 };
             }
-
             fetch(url, {
                 method: 'post',
-                body: formBody,
+                body: JSON.stringify(postArray),
                 crossDomain: true,
                 headers: headers
             }).then(function (response)
@@ -209,6 +208,7 @@ class CrashCatch
                 {
                     if (endpoint === "initialise")
                     {
+                        console.log("Initialisation Response Headers", response.headers);
                         main.setCookie("session_id", response.headers.get("session_id"));
                         main.cookie = main.getCookie("session_id");
                     }
@@ -279,6 +279,15 @@ class CrashCatch
         //Now we have a stack get the line number
         postArray.LineNo = this.getLineNoFromStacktrace(postArray.Stacktrace);
         postArray.JSFile = this.getJSFileFromStacktrace(postArray.Stacktrace);
+
+        if (postArray.JSFile.length === 0)
+        {
+            postArray.JSFile = "N/A";
+        }
+        if (isNaN(postArray.LineNo))
+        {
+            postArray.LineNo = "0";
+        }
 
         postArray.VersionName = this.version;
 
