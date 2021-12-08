@@ -165,7 +165,7 @@ class CrashCatch
                 
         return new Promise(function(resolve, reject)
         {
-            let url = "https://engine.crashcatch.com/api";
+            let url = "https://engine.crashcatch.com/api/";
             
             url += endpoint;
 
