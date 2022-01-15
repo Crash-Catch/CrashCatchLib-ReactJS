@@ -2,8 +2,14 @@
 * Crash Catch ReactJS Crash & Error Reporting Library
 * Copyright (C) Boardies IT Solutions 2021
 */
+import * as React from "react";
 
-class CrashCatch
+export const CrashCatchContext = React.createContext(null);
+
+export const CrashCatchProvider = CrashCatchContext.Provider;
+export const CrashCatchConsumer = CrashCatchContext.Consumer;
+
+export class CrashCatch
 {
     constructor()
     {
@@ -307,7 +313,7 @@ class CrashCatch
         const lines = exception.toString().split(/\r?\n/);
         const msg = lines[0];
 
-        const postArray = this.getPostArray(exception, msg);
+        const postArray = this.getPostArray(exception, msg, "High", false);
 
         const customProperties = {};
         customProperties.Url = window.location.href;
@@ -468,4 +474,4 @@ class CrashCatch
 
 }
 
-module.exports.CrashCatch = CrashCatch;
+//module.exports.CrashCatch = CrashCatch;

@@ -11,5 +11,8 @@
   "dependencies": {
     "js-cookie": "^2.2.1",
     "sourcemapped-stacktrace": "^1.1.11"
+  },
+  "peerDependencies": {
+    "react": "^17.0.2"
   }
 }
