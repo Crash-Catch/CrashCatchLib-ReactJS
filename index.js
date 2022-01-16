@@ -23,6 +23,7 @@ export class CrashCatch
         this.cookie = null;
 
         this.initialiseAttempt = 0;
+        this.do_lb = '';
     }
 
     generateRandomDeviceID()
@@ -51,6 +52,7 @@ export class CrashCatch
 
             document.cookie = key + "=" + value + ";expires=" + now.toUTCString() + ";";
         }
+
     }
 
     getCookie(cname)
@@ -125,34 +127,37 @@ export class CrashCatch
         //Store the device id as a cookie so it can be reused
         this.setCookie("DeviceID", this.device_id, false);
 
-        this.is_initialised = true;
-
-
-
         const main = this;
         this.sendRequest(postArray, "initialise").then(function(result){
-            if (result.result === 0)
-            {
-                main.crash_queue.forEach(crash => {
-                    main.sendRequest(crash, "crash").then(function(result){
-                        //Nothing to do here as the result will be blank
-                    }).catch(function(err){
-                        if (main.callback !== null)
-                        {
-                            main.callback(err);
-                        }
+            try {
+
+                if (result.result === 0) {
+                    main.is_initialised = true;
+
+                    main.crash_queue.forEach(crash => {
+                        main.sendRequest(crash, "crash").then(function (result) {
+                            //Nothing to do here as the result will be blank
+                        }).catch(function (err) {
+                            if (main.callback !== null) {
+                                main.callback(err);
+                            }
+                        });
                     });
-                });
+                    if (main.is_initialised) {
+                        main.crash_queue = [];
+                    }
+                } else {
+                    main.initialiseAttempt++;
+                }
+                if (callback !== null) {
+                    callback(result);
+                }
             }
-            else
+            catch (err)
             {
-                main.initialiseAttempt++;
-            }
-            if (callback !== null)
-            {
-                callback(result);
             }
         }).catch(function(err){
+
             if (callback !== null)
             {
                 callback(err);
@@ -171,17 +176,11 @@ export class CrashCatch
                 
         return new Promise(function(resolve, reject)
         {
-            let url = "https://engine.crashcatch.com/api/";
+            //let url = "https://engine.crashcatch.com/api/";
+            let url = "https://engine-test.crashcatch.com/api/";
             
             url += endpoint;
 
-            /*let formBody = [];
-            for (const property in postArray) {
-                const encodedKey = encodeURIComponent(property);
-                const encodedValue = encodeURIComponent(postArray[property]);
-                formBody.push(encodedKey + "=" + encodedValue);
-            }
-            formBody = formBody.join("&");*/
 
             let headers = null;
             if ((main.cookie !== null) && main.cookie !== "")
@@ -198,6 +197,7 @@ export class CrashCatch
                     'authorisation-token': main.api_key
                 };
             }
+
             fetch(url, {
                 method: 'post',
                 body: JSON.stringify(postArray),
@@ -213,9 +213,12 @@ export class CrashCatch
                 {
                     if (endpoint === "initialise")
                     {
-                        console.log("Initialisation Response Headers", response.headers);
+
                         main.setCookie("session_id", response.headers.get("session_id"));
                         main.cookie = main.getCookie("session_id");
+                        main.is_initialised = true;
+
+
                     }
                     response.text().then(function (text)
                     {
@@ -224,11 +227,27 @@ export class CrashCatch
                             const json = JSON.parse(text);
                             //If result = 4 then take the post data and add it to the crash queue
 
-                            if (json.result === 4)
+                            if (json.result === 4 && endpoint === 'crash')
                             {
                                 main.crash_queue.push(postArray);
-                                main.initialiseCrashCatch(main.project_id, main.api_key, main.version, main.callback);
+                                if (main.is_initialised) {
+                                    main.initialiseCrashCatch(main.project_id, main.api_key, main.version, main.callback);
+                                }
                             }
+                            if (json.result === 0 && main.crash_queue.length > 0 && endpoint === 'initialise')
+                            {
+                                main.crash_queue.forEach(crash => {
+                                    if (main.is_initialised)
+                                    {
+                                        main.sendRequest(crash, 'crash').then(function(){
+                                            //Nothing to do here
+                                        });
+                                    }
+
+                                });
+                                main.crash_queue = [];
+                            }
+
 
                             resolve(json);
                         }
@@ -346,7 +365,6 @@ export class CrashCatch
 
     reportCrash(exception, severity, customProperties = null)
     {
-
             //Check that we received a valid severity
             switch (severity)
             {
@@ -401,7 +419,7 @@ export class CrashCatch
         else
         {
             this.crash_queue.push(postArray);
-            this.initialiseCrashCatch(this.api_key, this.project_id, this.version, this.callback);
+            //this.initialiseCrashCatch(this.project_id, this.api_key, this.version, this.callback);
         }
     }
 
