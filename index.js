@@ -86,11 +86,12 @@ export class CrashCatch
                 });
             }
         }
-        window.onerror = (message, source, lineno, colno, error) => {
+        if (typeof window !== typeof undefined) {
+            window.onerror = (message, source, lineno, colno, error) => {
 
-            this.reportUnhandledException(error);
+                this.reportUnhandledException(error);
+            }
         }
-
         this.api_key = api_key;
         this.project_id = project_id;
         this.version = version;
@@ -333,9 +334,10 @@ export class CrashCatch
 
         const postArray = this.getPostArray(exception, msg, "High", false);
 
-        const customProperties = {};
-        customProperties.Url = window.location.href;
-
+        if (typeof window !== typeof undefined) {
+            const customProperties = {};
+            customProperties.Url = window.location.href;
+        }
         postArray.CustomProperty = JSON.stringify(customProperties);
         postArray.Severity = "High";
 
@@ -386,20 +388,28 @@ export class CrashCatch
                 if (typeof customProperties === typeof String)
                 {
                     const currentProperties = JSON.parse(customProperties);
-                    currentProperties.Url = window.location.href;
+                    if (typeof window !== typeof undefined)
+                    {
+                        currentProperties.Url = window.location.href;
+                    }
                     postArray.CustomProperty = JSON.stringify(customProperties);
                 }
                 else
                 {
-                    customProperties.Url = window.location.href;
+                    if (typeof window !== typeof undefined) {
+                        customProperties.Url = window.location.href;
+                    }
                     postArray.CustomProperty = JSON.stringify(customProperties);
                 }
             }
             else
             {
-                customProperties = { };
-                customProperties.Url = window.location.href;
-                postArray.CustomProperty = JSON.stringify(customProperties);
+                if (typeof window !== typeof undefined)
+                {
+                    customProperties = { };
+                    customProperties.Url = window.location.href;
+                    postArray.CustomProperty = JSON.stringify(customProperties);
+                }
             }
 
 
@@ -442,8 +452,9 @@ export class CrashCatch
             let jsLoc = lineWithJSError.substr(lineWithJSError.indexOf("(")+1);
             jsLoc = jsLoc.replace("http://", "").replace("https://", "");
             jsLoc = jsLoc.substr(0, jsLoc.indexOf(":"));
-            jsLoc = jsLoc.replace(window.location.hostname, "");
-
+            if (typeof window !== typeof undefined) {
+                jsLoc = jsLoc.replace(window.location.hostname, "");
+            }
             return jsLoc;
         }
         else
