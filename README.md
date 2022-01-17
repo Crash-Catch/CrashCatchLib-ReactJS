@@ -9,72 +9,106 @@ The Crash Catch ReactJS library can be installed from NPM using the following
 command
 
 ```text
-npm install CrashCatchLib-ReactJS
+npm install crashcatchlib-reactjs
 ```
 
 # Using the Library
-The first thing that needs to happen is to initialise the library. 
-Assuming you have multiple pages, it is recommended to have the initialisation
-somewhere globally within the project that you can reference from anywhere so that
-you are able to report errors that are caught. It doesn't matter if you initialise
-multiple times during one session, we'll manage this and just extend the action
-session so there's nothing to worry about. 
+Once installed, in your app.js or app.tsx you need to import and the as shown below:
 
-Create an instance of the library - this might be useful to do in a state object
-such as below
+import {CrashCatch, CrashCatchProvider} from "crashcatchlib-reactjs";
+Then in the function above the return statement, create a new instance of CrashCatch and initialise the library, using your proejct id, API key and your projects version number as shown below:
 
-```javascript
-const [crashCatch, setCrashCatch] = useState(new CrashCatch);
-```
+const crash_catch = new CrashCatch();
+crash_catch.initialiseCrashCatch("<your project id>", "<your projects api key>", "<project version number>");
+Then you need to wrap everything in the return of app.js in a and pass the value of a full example of your app.js might look like below:
 
-Then you can initialise Crash Catch doing the following
+import React from 'react';
+import {BrowserRouter, Routes, Route} from "react-router-dom";
+import Home from "./components/Home";
+import NotFound from "./components/NotFound";
+import ErrorBoundary from "./components/ErrorBoundary";
+import {CrashCatch, CrashCatchProvider, CrashCatchContext} from "crashcatchlib-reactjs";
 
-```javascript
-crashCatch.initialiseCrashCatch("your_project_Id", "your_api_key", "version_number", initialiseCallback)
-```
+function App() {
 
-The initialisecallback parameter is optional. When Crash Catch initialised, if this 
-is available, we'll call this callback with the result object so you can handle it 
-accordingly. For information on the result object, check out our docs at
-https://docs.crashcatch.com
+    const crash_catch = new CrashCatch();
+    crash_catch.initialiseCrashCatch("12345678", "abcdefghijkl", "1.0.0");
+  return (
 
-We need to send a test crash to prove that installation has worked successfully. 
-The easiest way to do this, is to write the below code and execute it. This will
-report a null error due to the variable not being set even though toString() is 
-being called. 
+      <CrashCatchProvider value={crash_catch}>
+          <ErrorBoundary>
+              <BrowserRouter>
+                  <Routes>
+                      <Route index element={<Home />} />
+                      <Route path='*' element={<NotFound />} />
+                  </Routes>
+              </BrowserRouter>
+          </ErrorBoundary>
+      </CrashCatchProvider>
 
-```javascript
-try
-{
-    const test = null;
-    console.log(test.toString());
+  );
 }
-catch (ex)
-{
-    crashCatch.reportCrash(ex, "Low");
+export default App;
+You may have noticed under there is another component called . You need to create this component with the following in as a minimum. You can add extra handling if you wish to this component but the below is required to submit unhandled crash exceptions:
+
+import * as React from "react";
+import {CrashCatchContext} from 'crashcatchlib-reactjs';
+
+class ErrorBoundary extends React.Component {
+
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false };
+    }
+
+    componentDidCatch(error: Error, errorInfo: React.ErrorInfo)
+    {
+        this.setState({hasError: true});
+        const crash_catch = this.context;
+        crash_catch.reportUnhandledException(error);
+    }
+
+    render() {
+        return this.props.children
+    }
 }
-```
+export default ErrorBoundary
+This is the minimum you need to send error reports, these will send unhandled errors that occur within your project. You can however, send errors from components that are handled by a try/catch error.
 
-The second parameter in the report crash parameter is the severity. This can be 
-any of the following three values - anything other than below will result in an error
-being returned
 
-* Low
-* Medium
-* High
+For example, you can do the following in a functional component.
 
-There is an optional parameter to the reportCrash method above. This is a JSON object
-that allows you to submit custom debug information to help you diagnose an issue
-easier, such as the following:
+import * as React from 'react'
 
-```javascript
-crashCatch.reportCrash(ex, "Low", {
-    "param1": "value1",
-    "param2": "value2"
-})
-```
+import * as React from 'react';
+import {CrashCatchContext} from 'crashcatchlib-reactjs';
 
-That it, Crash Catch is successfully initialised, you will now receive reports
-for any errors that occur that aren't caught, and any errors that you wish
-to report on that are caught.
+export default function MyComponent() {
 
+  const crash_catch = useContext(CrashCatchContext);
+
+  //If your project is typescript then you would need to do the following:
+  //const crash_catch : CrashCatchContext = useContext(CrashCatchContext);
+
+  const sendHandledCrash = () => {
+    try
+    {
+      //Do something that would trigger an error
+    }
+    catch (err)
+    {
+      //The second parameter should be Low, Medium or High
+      crash_catch.reportCrash(err, "Low");
+    
+      //You can also pass a third parameter which is JSON object of some extra debug information such as:
+      crash_catch.reportCrash(err, "Low", {
+        "method": "sendHandledCrash",
+        "url": window.location.href
+      });
+    }
+  }
+  
+  return (
+    <button onClick={() => sendHandledCrash()}>Test</button>
+  )
+}
