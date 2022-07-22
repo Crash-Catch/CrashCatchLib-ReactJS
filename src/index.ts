@@ -1,16 +1,67 @@
 /**
 * Crash Catch ReactJS Crash & Error Reporting Library
-* Copyright (C) Boardies IT Solutions 2021
+* Copyright (C) Devso 2021
 */
-import * as React from "react";
+import React from "react";
+
+//import * as React from "react";
 
 export const CrashCatchContext = React.createContext(null);
 
 export const CrashCatchProvider = CrashCatchContext.Provider;
 export const CrashCatchConsumer = CrashCatchContext.Consumer;
 
+
+type EngineAPIResult = {
+    result: number,
+    message: string,
+    data?: any
+}
+
+type BrowserType = {
+    browser: string,
+    version: string
+}
+
+type CrashPostData = {
+    ExceptionType: string,
+    ExceptionMessage: string,
+    ScreenResolution: string,
+    Locale: string,
+    ProjectID: string,
+    CrashType: string,
+    DeviceID: string,
+    Stacktrace: string,
+    LineNo: string|number,
+    ClassFile: string,
+    JSFile: string
+    VersionName: string,
+    BrowserWidthHeight: string,
+    DeviceType: string,
+    Browser: string,
+    BrowserVersion: string,
+    Severity: string,
+    CustomProperty: string & any
+}
+
+type InitialisePostData = {
+    ProjectID: string,
+    DeviceID: string,
+    ProjectVersion: string
+}
+
 export class CrashCatch
 {
+    api_key: string
+    project_id: string
+    version: string
+    callback: (result: EngineAPIResult) => void;
+    is_initialised: boolean
+    crash_queue: Array<CrashPostData | InitialisePostData>
+    device_id: string
+    cookie: string
+    initialiseAttempt: number
+    do_lb: string
     constructor()
     {
         this.api_key = '';
@@ -37,7 +88,7 @@ export class CrashCatch
         return text;
     }
 
-    setCookie(key, value, expire = false)
+    setCookie(key: string, value: string, expire = false)
     {
         const d = new Date();
         if (!expire)
@@ -55,7 +106,7 @@ export class CrashCatch
 
     }
 
-    getCookie(cname)
+    getCookie(cname: string)
     {
         const name = cname + "=";
         const decodedCookie = decodeURIComponent(document.cookie);
@@ -72,7 +123,7 @@ export class CrashCatch
         return "";
     }
 
-    initialiseCrashCatch(project_id, api_key, version, callback = null)
+    initialiseCrashCatch(project_id: string, api_key: string, version:string, callback: (result: EngineAPIResult) => void = null)
     {
 
         if (this.initialiseAttempt >= 3)
@@ -87,7 +138,7 @@ export class CrashCatch
             }
         }
         if (typeof window !== typeof undefined) {
-            window.onerror = (message, source, lineno, colno, error) => {
+            window.onerror = (_message, _source, _lineno, _colno, error: Error|undefined) => {
 
                 this.reportUnhandledException(error);
             }
@@ -97,15 +148,16 @@ export class CrashCatch
         this.version = version;
         this.callback = callback;
 
-        const postArray = {
+        const postArray : InitialisePostData = {
             ProjectID: this.project_id,
-            ProjectVersion: this.version
+            ProjectVersion: this.version,
+            DeviceID: ''
         }
 
         const deviceIDCookie = this.getCookie("DeviceID");
 
 
-        if (deviceIDCookie !== "")
+        if (deviceIDCookie !== null && deviceIDCookie !== "")
         {
             this.device_id = deviceIDCookie;
         }
@@ -116,10 +168,12 @@ export class CrashCatch
             this.device_id = this.generateRandomDeviceID();
         }
 
+        this.setCookie("DeviceID", this.device_id);
+
         postArray.DeviceID = this.device_id;
 
         const sessionIDCookie = this.getCookie("session_id")
-        if (sessionIDCookie !== "")
+        if (sessionIDCookie !== null && sessionIDCookie !== "")
         {
             this.cookie = sessionIDCookie;
         }
@@ -129,14 +183,14 @@ export class CrashCatch
         this.setCookie("DeviceID", this.device_id, false);
 
         const main = this;
-        this.sendRequest(postArray, "initialise").then(function(result){
+        this.sendRequest(postArray, "initialise").then(function(result: EngineAPIResult){
             try {
 
                 if (result.result === 0) {
                     main.is_initialised = true;
 
                     main.crash_queue.forEach(crash => {
-                        main.sendRequest(crash, "crash").then(function (result) {
+                        main.sendRequest(crash, "crash").then(function () {
                             //Nothing to do here as the result will be blank
                         }).catch(function (err) {
                             if (main.callback !== null) {
@@ -171,7 +225,7 @@ export class CrashCatch
     }
 
 
-    sendRequest(postArray, endpoint)
+    sendRequest(postArray: CrashPostData | InitialisePostData, endpoint: string)
     {
         const main = this;
                 
@@ -188,7 +242,7 @@ export class CrashCatch
                 headers = {
                     'Content-Type': 'application/json',
                     'authorisation-token': main.api_key,
-                    'session_id': main.getCookie("session_id"),
+                    'session_id': main.cookie,
                 };
             }
             else {
@@ -201,7 +255,7 @@ export class CrashCatch
             fetch(url, {
                 method: 'post',
                 body: JSON.stringify(postArray),
-                crossDomain: true,
+                //crossDomain: true,
                 headers: headers
             }).then(function (response)
             {
@@ -253,7 +307,7 @@ export class CrashCatch
                         }
                         else
                         {
-                            resolve();
+                            resolve(null);
                         }
                     }).catch(function (err)
                     {
@@ -276,16 +330,28 @@ export class CrashCatch
     }
 
 
-    getPostArray(exception, exceptionMsg, severity, handledException)
+    getPostArray(exception : Error, exceptionMsg : string, severity: string, handledException: boolean)
     {
-        const postArray = { };
-        postArray.Severity = severity;
-       
-        postArray.ScreenResolution = "";
-        postArray.Locale = navigator.language;
-        postArray.ProjectID = this.project_id;
-        postArray.CrashType = handledException ? "Handled" : "Unhandled"
-        postArray.DeviceID = this.device_id;
+        const postArray : CrashPostData = {
+            Severity: severity,
+            ScreenResolution: "",
+            Locale: navigator.language,
+            ProjectID: this.project_id,
+            CrashType: handledException ? "Handled" : "Unhandled",
+            DeviceID: this.device_id,
+            ExceptionMessage: exceptionMsg,
+            ExceptionType: '',
+            Stacktrace: '',
+            LineNo: '',
+            ClassFile: '',
+            JSFile: '',
+            VersionName: '',
+            BrowserWidthHeight: '',
+            DeviceType: 'ReactJS',
+            Browser: '',
+            BrowserVersion: '',
+            CustomProperty: ''
+        };
 
         if (typeof exception.stack ===typeof undefined )
         {
@@ -308,9 +374,16 @@ export class CrashCatch
         {
             postArray.JSFile = "N/A";
         }
-        if (isNaN(postArray.LineNo))
+
+        const lineNo = parseInt(postArray.LineNo);
+
+        if (isNaN(lineNo))
         {
             postArray.LineNo = "0";
+        }
+        else
+        {
+            postArray.LineNo = lineNo.toString();
         }
 
         postArray.VersionName = this.version;
@@ -320,22 +393,23 @@ export class CrashCatch
             document.documentElement.clientHeight;
         postArray.DeviceType = "ReactJS";
 
-        const browserDetails = this.identifyBrowser();
+        const browserDetails : BrowserType = this.identifyBrowser();
         postArray.Browser = browserDetails.browser;
         postArray.BrowserVersion = browserDetails.version;
 
         return postArray;
     }
 
-    reportUnhandledException(exception)
+    reportUnhandledException(exception: Error)
     {
         const lines = exception.toString().split(/\r?\n/);
         const msg = lines[0];
 
         const postArray = this.getPostArray(exception, msg, "High", false);
 
+        let customProperties : string & any = {};
+
         if (typeof window !== typeof undefined) {
-            const customProperties = {};
             customProperties.Url = window.location.href;
         }
         postArray.CustomProperty = JSON.stringify(customProperties);
@@ -344,7 +418,7 @@ export class CrashCatch
         const main = this;
         if (this.is_initialised)
         {
-            this.sendRequest(postArray, "crash").then(function (result)
+            this.sendRequest(postArray, "crash").then(function (result: EngineAPIResult)
             {
                 if (main.callback !== null)
                 {
@@ -364,7 +438,7 @@ export class CrashCatch
         }
     }
 
-    reportCrash(exception, severity, customProperties = null)
+    reportCrash(exception: Error, severity: string, customProperties : string & any = null)
     {
             //Check that we received a valid severity
             switch (severity)
@@ -416,7 +490,7 @@ export class CrashCatch
         if (this.is_initialised)
         {
             const main = this;
-            this.sendRequest(postArray, "crash").then(function(result){
+            this.sendRequest(postArray, "crash").then(function(){
 
             }).catch(function(err){
                 if (main.callback !== null)
@@ -432,19 +506,30 @@ export class CrashCatch
         }
     }
 
-    getLineNoFromStacktrace(stack)
+    getLineNoFromStacktrace(stack: string)
     {
+        document.write(stack);
         const stackSplit = stack.split(/\r?\n/);
 
-        //Get the first colon (:), after this is the line number)*/
-        const lineInfo = stack.substring(stack.indexOf(":")+1);
+        const updatedStackArray : Array<string> = [];
 
-        //Now what we have left, the colon next is the end of the line number
+        stackSplit.forEach(line => {
+            if (line.indexOf("CrashCatch") === -1)
+            {
+                updatedStackArray.push(line);
+            }
+        })
 
-        return lineInfo.substring(0, lineInfo.indexOf(":"));
+        stack = updatedStackArray.join('\n')
+
+        const line = updatedStackArray[0];
+
+        const parts = line.split(":");
+        //Subtract -2 as the end of the script will contain line:character and we don't need the character
+        return parts[parts.length-2];
     }
 
-    getJSFileFromStacktrace(stack)
+    getJSFileFromStacktrace(stack: string)
     {
         const stackSplit = stack.split(/\r?\n/);
         if (stackSplit.length >= 1) {
@@ -490,13 +575,17 @@ export class CrashCatch
                 {
                     version = (m[1].match(new RegExp('[^.]+(?:\.[^.]+){0,' + --elements + '}')))[0];
                     //return browser + ' ' + version);
-                    const returnVal = {
-                        "browser": browser,
-                        "version": version
+                    const returnVal : BrowserType = {
+                        browser: browser,
+                        version: version
                     };
                     return returnVal;
                 }
             }
+        }
+        return {
+            browser: "N/A",
+            version: "N/A"
         }
     }
 

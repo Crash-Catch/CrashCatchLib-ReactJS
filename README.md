@@ -15,13 +15,21 @@ npm install crashcatchlib-reactjs
 # Using the Library
 Once installed, in your app.js or app.tsx you need to import and the as shown below:
 
+```javascript
 import {CrashCatch, CrashCatchProvider} from "crashcatchlib-reactjs";
+```
+
 Then in the function above the return statement, create a new instance of CrashCatch and initialise the library, using your proejct id, API key and your projects version number as shown below:
 
+```javascript
 const crash_catch = new CrashCatch();
 crash_catch.initialiseCrashCatch("<your project id>", "<your projects api key>", "<project version number>");
+```
+
 Then you need to wrap everything in the return of app.js in a and pass the value of a full example of your app.js might look like below:
 
+
+```javascript
 import React from 'react';
 import {BrowserRouter, Routes, Route} from "react-router-dom";
 import Home from "./components/Home";
@@ -49,8 +57,11 @@ function App() {
   );
 }
 export default App;
+```
+
 You may have noticed under there is another component called . You need to create this component with the following in as a minimum. You can add extra handling if you wish to this component but the below is required to submit unhandled crash exceptions:
 
+```javascript
 import * as React from "react";
 import {CrashCatchContext} from 'crashcatchlib-reactjs';
 
@@ -73,11 +84,13 @@ class ErrorBoundary extends React.Component {
     }
 }
 export default ErrorBoundary
-This is the minimum you need to send error reports, these will send unhandled errors that occur within your project. You can however, send errors from components that are handled by a try/catch error.
+```
 
+This is the minimum you need to send error reports, these will send unhandled errors that occur within your project. You can however, send errors from components that are handled by a try/catch error.
 
 For example, you can do the following in a functional component.
 
+```javascript
 import * as React from 'react'
 
 import * as React from 'react';
@@ -112,3 +125,5 @@ export default function MyComponent() {
     <button onClick={() => sendHandledCrash()}>Test</button>
   )
 }
+
+```
