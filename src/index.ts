@@ -508,7 +508,6 @@ export class CrashCatch
 
     getLineNoFromStacktrace(stack: string)
     {
-        document.write(stack);
         const stackSplit = stack.split(/\r?\n/);
 
         const updatedStackArray : Array<string> = [];
